@@ -14,6 +14,7 @@ SITE_NAME = 'Toro'
 SITE_DESC = 'Regarder Films et Séries en Streaming gratuit'
 
 URL_MAIN = 'https://voir.torostreaming.com/'
+URL_MAIN2 = 'https://dpstream.torostreaming.com/'
 
 #definis les url pour les catégories principale, ceci est automatique, si la definition est présente elle sera affichee.
 #LA RECHERCHE GLOBAL N'UTILE PAS showSearch MAIS DIRECTEMENT LA FONCTION INSCRITE DANS LA VARIABLE URL_SEARCH_*
@@ -32,7 +33,7 @@ MOVIE_ANNEES = (True, 'showYears')
 MOVIE_LIST = (URL_MAIN, 'showAlpha')
 
 SERIE_SERIES = ('http://', 'showMenuSeries')
-SERIE_NEWS = (URL_MAIN + '/series/', 'showMovies')
+SERIE_NEWS = (URL_MAIN + 'series-streaming/', 'showMovies')
 # SERIE_VIEWS =  (URL_MAIN + '/film-les-plus-vues/', 'showMovies')
 # SERIE_COMMENTS = (URL_MAIN + '/films-plus-commenter-streaming/', 'showMovies')
 # SERIE_NOTES = (URL_MAIN + '/film-streaming-populaires/', 'showMovies')
@@ -290,8 +291,8 @@ def showMovies(sSearch = ''):
             oOutputParameterHandler.addParameter('sThumb', sThumb)
 
 
-            if '-saison-' in sUrl2 or '/series-' in sUrl2:
-                oGui.addTV(SITE_IDENTIFIER, 'showSaisons', sTitle, '', sThumb, sDesc, oOutputParameterHandler)
+            if '/serie-' in sUrl2 or '/series-' in sUrl2:
+                oGui.addTV(SITE_IDENTIFIER, 'showSaisons', sDisplayTitle, '', sThumb, sDesc, oOutputParameterHandler)
             else:
                 oGui.addMovie(SITE_IDENTIFIER, 'showLinks', sDisplayTitle, '', sThumb, sDesc, oOutputParameterHandler)
 
@@ -321,20 +322,33 @@ def showSaisons():
     oInputParameterHandler = cInputParameterHandler()
     sUrl = oInputParameterHandler.getValue('siteUrl')
     sThumb = oInputParameterHandler.getValue('sThumb')
+    sMovieTitle = oInputParameterHandler.getValue('sMovieTitle')
 
     oRequestHandler = cRequestHandler(sUrl)
     sHtmlContent = oRequestHandler.request()
-    sPattern = '<div class="unepetitesaisons">\s*<a href="([^"]+)" title="([^"]+)"'
+    sPattern = 'class="Title AA-Season On".+?>([^<]+)<span>([^<]+)|class="MvTbTtl"><a href="([^"]+)">([^<]+)'
     oParser = cParser()
     aResult = oParser.parse(sHtmlContent, sPattern)
 
     if (aResult[0] == True):
+        total = len(aResult[1])
+        progress_ = progress().VScreate(SITE_NAME)
 
         for aEntry in aResult[1]:
+            progress_.VSupdate(progress_, total)
+            if progress_.iscanceled():
+                break
+            
+            if aEntry[0]:
+                Saison= aEntry[0] + aEntry[1]
+                oGui.addText(SITE_IDENTIFIER, '[COLOR crimson]' + Saison + '[/COLOR]')
+           
+            
 
-            sUrl = aEntry[0]
-            sTitle = aEntry[1]
-            sTitle = re.sub(' - Saison \d+', '', sTitle)#double affichage de la saison
+            sUrl = aEntry[2]
+            #Saison= aEntry[0] + aEntry[1]
+            sEp = aEntry[3]
+            sTitle = sMovieTitle + Saison + sEp
 
             if not sUrl.startswith('http'):
                 sUrl = URL_MAIN + sUrl
@@ -342,8 +356,9 @@ def showSaisons():
             oOutputParameterHandler = cOutputParameterHandler()
             oOutputParameterHandler.addParameter('siteUrl', sUrl)
             oOutputParameterHandler.addParameter('sThumb', sThumb)
+            oOutputParameterHandler.addParameter('sMovieTitle', sTitle)
 
-            oGui.addTV(SITE_IDENTIFIER, 'showEpisodes', sTitle, '', sThumb, '', oOutputParameterHandler)
+            oGui.addTV(SITE_IDENTIFIER, 'showSeriesLinks', sTitle, '', sThumb, '', oOutputParameterHandler)
 
     oGui.setEndOfDirectory()
 
@@ -428,6 +443,62 @@ def showLinks():
 
             oOutputParameterHandler = cOutputParameterHandler()
             oOutputParameterHandler.addParameter('sMovieTitle', sMovieTitle)
+            oOutputParameterHandler.addParameter('sThumb', sThumb)
+            oOutputParameterHandler.addParameter('siteUrl', sUrl)
+            #oOutputParameterHandler.addParameter('referer', sUrl)
+
+            oGui.addLink(SITE_IDENTIFIER, 'showHosters', sTitle, sThumb, sDesc, oOutputParameterHandler)
+
+    oGui.setEndOfDirectory()
+
+def showSeriesLinks():
+    oGui = cGui()
+
+    oInputParameterHandler = cInputParameterHandler()
+    sUrl = oInputParameterHandler.getValue('siteUrl')
+    sThumb = oInputParameterHandler.getValue('sThumb')
+    sMovieTitle = oInputParameterHandler.getValue('sMovieTitle')
+
+    oParser = cParser()
+    oRequestHandler = cRequestHandler(sUrl)
+    sHtmlContent = oRequestHandler.request()
+    sPattern = 'data-tplayernv.+?span>([^<]+)|id="Opt\d.+?src=.+?trembed=(\d).+?trid=(\d{6})'
+    aResult = oParser.parse(sHtmlContent, sPattern)
+   
+
+    
+
+    if (aResult[0] == True):
+        for aEntry in aResult[1]:
+
+                    
+                   
+             
+            
+            
+            if aEntry[1] != '':
+                sCode = aEntry[1]
+            else:
+                continue
+            if aEntry[1] != '':
+                sCode1 = aEntry[2]
+            else:
+                continue
+            
+            
+            sHost = aEntry[0]
+            sDesc = ''
+
+            # filtrage des hosters
+            #oHoster = cHosterGui().checkHoster(sHost)
+            #if not oHoster:
+                #continue
+
+            sTitle = ('%s  [COLOR coral]%s[/COLOR]') % (sMovieTitle, sHost)
+            sUrl = URL_MAIN2 + '?trembed=' + sCode + '&trid=' + sCode1 + '&trtype=2'
+
+            oOutputParameterHandler = cOutputParameterHandler()
+            oOutputParameterHandler.addParameter('sMovieTitle', sTitle)
             oOutputParameterHandler.addParameter('sThumb', sThumb)
             oOutputParameterHandler.addParameter('siteUrl', sUrl)
             #oOutputParameterHandler.addParameter('referer', sUrl)
