@@ -351,9 +351,9 @@ class cDownload:
 
         m = re.search('(flv|avi|mp4|mpg|mpeg|mkv)', sUrl)
         if m:
-            sTitle = sTitle + '.' + m.group(0)
+            sTitle = sTitle.decode() + '.' + m.group(0)
         else:
-            sTitle = sTitle + '.mp4'  # Si quedale on en prend une au pif
+            sTitle = sTitle.decode() + '.mp4'  # Si quedale on en prend une au pif
 
         return sTitle
 
@@ -364,7 +364,8 @@ class cDownload:
         sPluginPath = cPluginHandler().getPluginPath()
         sItemUrl = '%s?site=%s&function=%s&title=%s' % (sPluginPath, SITE_IDENTIFIER, 'StartDownloadList', 'title')
         # meta = {'title': 'Démarrer la liste'}
-        item = xbmcgui.ListItem('Démarrer la liste', iconImage='special://home/addons/plugin.video.vstream/resources/art/download.png')
+        item = xbmcgui.ListItem('Démarrer la liste')
+        item.setArt({'icon':'special://home/addons/plugin.video.vstream/resources/art/download.png'})
 
         # item.setInfo(type='Video', infoLabels=meta)
         # item.setProperty('Video', 'false')
